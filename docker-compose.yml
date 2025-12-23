@@ -1,0 +1,63 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: weather_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d weather_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  generator:
+    build: ./generator
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      POSTGRES_DB: weather_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    image: redis:6-alpine
+
+  redash-server:
+    image: redash/redash:10.1.0.b50633
+    command: server
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "5000:5000"
+    env_file: .env
+
+  redash-scheduler:
+    image: redash/redash:10.1.0.b50633
+    command: scheduler
+    depends_on:
+      - redash-server
+    env_file: .env
+
+  redash-worker:
+    image: redash/redash:10.1.0.b50633
+    command: worker
+    depends_on:
+      - redash-server
+    env_file: .env
+
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebook:/home/jovyan/work
+    environment:
+      JUPYTER_TOKEN: "docker"
+    user: root
+    entrypoint: >
+      sh -c "pip install psycopg2-binary sqlalchemy && start-notebook.sh"
