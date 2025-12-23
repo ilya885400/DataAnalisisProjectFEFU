@@ -5,11 +5,11 @@
 ## Запуск
 1. Соберите и запустите контейнеры:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 2. Инициализируйте базу данных Redash (только при первом запуске):
    ```bash
-   docker-compose run --rm redash-server create_db
+   docker compose run --rm redash-server create_db
    ```
 
 ## Доступ к сервисам
